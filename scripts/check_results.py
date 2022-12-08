@@ -37,14 +37,14 @@ def get_data(path):
         while True:
             try:
                 data = pickle.load(f)
-                traces_i, labels_i = data[0], data[1]
-
-                if isinstance(traces_i[0], list):
-                    traces.extend(traces_i)
-                else:
-                    traces.append(traces_i)
-
-                labels.append(labels_i)
+                for sample in data:
+                    traces_i, labels_i = sample
+                    if isinstance(traces_i[0], list):
+                        traces.extend(traces_i)
+                    else:
+                        traces.append(traces_i)
+                    
+                    labels.append(labels_i)
             except EOFError:
                 break
 
