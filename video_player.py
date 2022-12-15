@@ -16,7 +16,8 @@ class VideoPlayer:
         pass
 
     def play(self, file_path, length):
-        player_name = {"linux": "vlc", "win32": "vlc.exe", "darwin": "vlc"}[sys.platform]
-        player = subprocess.Popen([player_name, file_path], stderr=subprocess.DEVNULL)
+        player_name = {"linux": "vlc", "win32": "vlc.exe", "darwin": "/Applications/VLC.app/Contents/MacOS/VLC"}[
+            sys.platform]
+        player = subprocess.Popen([player_name, file_path])
         time.sleep(length)
         player.kill()
