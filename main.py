@@ -31,7 +31,10 @@ def run(file_path, trace_length, player):
         player_thread.start()
 
         trace = collector.collect_traces()
-        traces.append([trace, file_path])
+        if "codec" == VAR:
+            traces.append([trace, file_path])
+        else:
+            traces.append([trace, player.player])
         player_thread.join()
 
 
