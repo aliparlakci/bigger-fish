@@ -45,6 +45,7 @@ class TraceCollector:
                 return traces[0]
 
     def __run(self):
+        self.driver.switch_to.window(self.driver.current_window_handle)
         self.driver.get(self.url)
         self.driver.execute_script(f"window.trace_length = {self.trace_length * 1000}")
         self.driver.execute_script("window.using_automation_script = true")
