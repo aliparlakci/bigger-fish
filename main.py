@@ -1,5 +1,5 @@
 from trace_collector import TraceCollector
-from video_player import VideoPlayer
+from video_player import VideoPlayer, SupportedPlayers
 
 import threading
 import pickle
@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser(description='Automate the collection of video p
 parser.add_argument("--trace_len", type=int, default=1, help="The trace length for the recordings in seconds.")
 parser.add_argument("--num_runs", type=int, default=5, help="The number of runs for each video file.")
 parser.add_argument("--out_dir", type=str, default="", help="The output location.")
-parser.add_argument("--var", choices=["codec", "player"], default="codec", help="The variable that will be changed. \
+parser.add_argument("--var", choices=["codec", "player", "full"], default="codec", help="The variable that will be changed. \
         Choosing the codec will record traces for each codec and vice versa.")
 opts = parser.parse_args()
 
@@ -25,11 +25,20 @@ VIDEO_FILES = ["sample.mp4", "sample.flv", "sample.3gp", "sample.mkv"]
 traces = []
 
 
-def run(file_path, trace_length, player):
+def run(file_path, trace_length, player_type, browser="CHROME"):
     with TraceCollector(trace_length=trace_length) as collector:
+        player = VideoPlayer(player=player_type)
+
+        if browser == "FIREFOX":
+            collector.setFirefox()
+        if browser == "CHROME":
+            collector.setChrome()
+        if browser == "EDGE":
+            collector.setEdge()
+
         player_thread = threading.Thread(target=lambda: player.play(file_path, trace_length))
         player_thread.start()
-
+        
         trace = collector.collect_traces()
         if "codec" == VAR:
             traces.append([trace, file_path])
@@ -37,19 +46,24 @@ def run(file_path, trace_length, player):
             traces.append([trace, player.player])
         player_thread.join()
 
-
-def main():
-    if not os.path.exists(OUT_DIR):
-        os.makedirs(OUT_DIR)
-    out_file = os.path.join(OUT_DIR, fr"traces_{NUM_OF_RUNS}_runs_{TRACE_LENGTH}_sec_{sys.platform}_OS_{VAR}_asVar.pkl")
+def ensure_output_file_does_not_exist(out_file):
     if os.path.exists(out_file):
         print(f"Output file already exists: {out_file}")
         print("Would you like to overwrite it? (y/n)")
         if input().casefold() != "y".casefold():
             print("Exiting...")
-            return
+            return False
+    return True
+
+def main():
+    if not os.path.exists(OUT_DIR):
+        os.makedirs(OUT_DIR)
+    out_file = os.path.join(OUT_DIR, fr"traces_{NUM_OF_RUNS}_runs_{TRACE_LENGTH}_sec_{sys.platform}_OS_{VAR}_asVar.pkl")
+    if not ensure_output_file_does_not_exist(out_file):
+        return
 
     video_player = VideoPlayer()
+
     if opts.var == "player":
         for player in video_player.players:
             video_player = VideoPlayer(player=player)
@@ -57,11 +71,20 @@ def main():
             print(f"Recording traces for {file} with {player.name}...")
             for _ in trange(NUM_OF_RUNS):
                 run(file, TRACE_LENGTH, video_player)
+
     elif opts.var == "codec":
         for file_path in VIDEO_FILES:
             print(f"Playing {file_path}...")
             for _ in trange(NUM_OF_RUNS):
                 run(file_path, TRACE_LENGTH, video_player)
+
+    elif opts.var == "full":
+        for _ in trange(NUM_OF_RUNS):
+            for file_path in VIDEO_FILES:
+                for browser in ["FIREFOX", "CHROME", "EDGE"]:
+                    for player in SupportedPlayers:
+                        print(f"Run: {file_path, browser, player}")
+                        run(file_path, TRACE_LENGTH, player, browser)
 
     with open(out_file, "wb") as f:
         pickle.dump(traces, f)
