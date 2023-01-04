@@ -7,6 +7,7 @@ import argparse
 import sys
 import os
 from tqdm import trange
+import time
 
 parser = argparse.ArgumentParser(description='Automate the collection of video player based CPU traces.')
 parser.add_argument("--trace_len", type=int, default=1, help="The trace length for the recordings in seconds.")
@@ -21,9 +22,6 @@ TRACE_LENGTH = opts.trace_len
 OUT_DIR = opts.out_dir
 VAR = opts.var
 VIDEO_FILES = ["sample.mp4", "sample.flv", "sample.3gp", "sample.mkv"]
-
-traces = []
-
 
 def run(file_path, trace_length, player_type, browser="CHROME"):
     with TraceCollector(trace_length=trace_length) as collector:
@@ -40,11 +38,8 @@ def run(file_path, trace_length, player_type, browser="CHROME"):
         player_thread.start()
         
         trace = collector.collect_traces()
-        if "codec" == VAR:
-            traces.append([trace, file_path])
-        else:
-            traces.append([trace, player.player])
         player_thread.join()
+        return [trace, file_path, browser, player_type, sys.platform, os.getlogin(), int(time.time())]
 
 def ensure_output_file_does_not_exist(out_file):
     if os.path.exists(out_file):
@@ -64,13 +59,16 @@ def main():
 
     video_player = VideoPlayer()
 
+    traces = []
+
     if opts.var == "player":
         for player in video_player.players:
             video_player = VideoPlayer(player=player)
             file = "sample.mp4"
             print(f"Recording traces for {file} with {player.name}...")
             for _ in trange(NUM_OF_RUNS):
-                run(file, TRACE_LENGTH, video_player)
+                trace = run(file, TRACE_LENGTH, video_player)
+                traces.append(trace)
 
     elif opts.var == "codec":
         for file_path in VIDEO_FILES:
@@ -84,7 +82,8 @@ def main():
                 for browser in ["FIREFOX", "CHROME", "EDGE"]:
                     for player in SupportedPlayers:
                         print(f"Run: {file_path, browser, player}")
-                        run(file_path, TRACE_LENGTH, player, browser)
+                        trace = run(file_path, TRACE_LENGTH, player, browser)
+                        traces.append(trace)
 
     with open(out_file, "wb") as f:
         pickle.dump(traces, f)
