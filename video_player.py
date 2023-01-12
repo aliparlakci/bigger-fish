@@ -4,17 +4,22 @@ import time
 from enum import Enum
 
 
-class SUPPORTED_PLAYERS(Enum):
-    WINDOWS_MEDIA_PLAYER = 1
-    MPC = 2
+class SupportedPlayers(Enum):
+    MPV = 1
+    MPLAYER = 2
     VLC = 3
 
 
 class VideoPlayer:
-    def __init__(self, player=SUPPORTED_PLAYERS.VLC):
-        pass
+    players = None
+    player = None
+
+    def __init__(self, players=SupportedPlayers, player=SupportedPlayers.VLC):
+        self.players = players
+        self.player = player.name
 
     def play(self, file_path, length):
-        player = subprocess.Popen(["vlc.exe", file_path])
+        player_name = self.player.lower()
+        player_process = subprocess.Popen([player_name, file_path], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
         time.sleep(length)
-        player.kill()
+        player_process.kill()

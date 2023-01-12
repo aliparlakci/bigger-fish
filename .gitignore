@@ -20,3 +20,9 @@ __pycache__
 twilio.json
 
 .idea/
+
+# Media
+*.3gp
+*.mkv
+*.mp4
+*.flv
