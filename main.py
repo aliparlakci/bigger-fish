@@ -19,12 +19,6 @@ parser.add_argument("--browsers", choices=["chrome", "safari", "edge", "firefox"
 parser.add_argument("--players", choices=["mpv", "mplayer", "vlc", "*"], nargs="+")
 opts = parser.parse_args()
 
-NUM_OF_RUNS = opts.num_runs
-TRACE_LENGTH = opts.trace_len
-OUT_DIR = opts.out_dir
-VAR = opts.var
-VIDEO_FILES = ["sample.mp4", "sample.flv", "sample.3gp", "sample.mkv"]
-
 def run(file_path, trace_length, player_type, browser="CHROME"):
     with TraceCollector(trace_length=trace_length) as collector:
         player = VideoPlayer(player=player_type)
@@ -67,19 +61,19 @@ def main():
     out_dir = opts.out_dir
     num_of_samples = opts.samples
     trace_len = opts.len
-    
+
     traces = []
 
     players = ["mpv", "mplayer", "vlc"] if "*" in opts.players else opts.players
     codecs = ["3gp", "flv", "mp4", "mkv"] if "*" in opts.codecs else opts.codecs
     browsers = ["chrome", "safari", "edge", "firefox"] if "*" in opts.browsers else opts.browsers
 
-    for player_name, codec, browser in tqdm(combinations(players, codecs, browsers)):
+    for codec, player_name, browser in tqdm(combinations(players, codecs, browsers)):
     
         player = SupportedPlayers.map(player_name)
         video_file = f"sample.{codec}"
-        print(f"Run: {video_file, browser, player}")
-        out_file = os.path.join(out_dir, fr"traces_{num_of_samples}_runs_{trace_len}_sec_{codec}_{player}_{browser}_{sys.platform}_{os.getlogin()}_{int(time.time())}.pkl")
+        print(f"\nRun: {video_file, browser, player.name}")
+        out_file = os.path.join(out_dir, fr"traces_{num_of_samples}_runs_{trace_len}_sec_{codec}_{player.name}_{browser}_{sys.platform}_{os.getlogin()}_{int(time.time())}.pkl")
         traces = []
     
         for _ in trange(num_of_samples):

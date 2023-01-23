@@ -9,13 +9,14 @@ class SupportedPlayers(Enum):
     MPLAYER = 2
     VLC = 3
 
-    def map(self, name: str):
+    @staticmethod
+    def map(name: str):
         if name.lower() == "mpv":
-            return self.MPV
+            return SupportedPlayers.MPV
         if name.lower() == "mplayer":
-            return self.MPLAYER
+            return SupportedPlayers.MPLAYER
         if name.lower() == "vlc":
-            return self.VLC
+            return SupportedPlayers.VLC
 
 
 class VideoPlayer:
