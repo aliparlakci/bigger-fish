@@ -17,9 +17,10 @@ parser.add_argument("--out_dir", type=str, default="", help="The output location
 parser.add_argument("--codecs", choices=["3gp", "flv", "mp4", "mkv", "*"], nargs="+")
 parser.add_argument("--browsers", choices=["chrome", "safari", "edge", "firefox", "*"], nargs="+")
 parser.add_argument("--players", choices=["mpv", "mplayer", "vlc", "*"], nargs="+")
+parser.add_argument("--only-first-core", action="store_true")
 opts = parser.parse_args()
 
-def run(file_path, trace_length, player_type, browser="CHROME"):
+def run(file_path, trace_length, player_type, browser="CHROME", single_core=False):
     with TraceCollector(trace_length=trace_length) as collector:
         player = VideoPlayer(player=player_type)
 
@@ -31,6 +32,9 @@ def run(file_path, trace_length, player_type, browser="CHROME"):
             collector.setEdge()
         if browser.upper() == "SAFARI":
             collector.setSafari()
+
+        if single_core:
+            collector.setCores("0x00000001")
 
         player_thread = threading.Thread(target=lambda: player.play(file_path, trace_length))
         player_thread.start()

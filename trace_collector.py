@@ -1,15 +1,28 @@
 import time
+import subprocess
+from platform import platform
 from selenium.webdriver import Safari
 from selenium.webdriver.safari.options import Options as SafariOptions
 from selenium import webdriver
 
 
+def get_process_parent_id_of(process_name):
+    p = subprocess.run(f"pidof {process_name}" + " | awk {'print $NF'}", capture_output=True, shell=True)
+    process_parent_id = p.stdout.decode()
+    return int(process_parent_id.strip())
+
 class TraceCollector:
     def __init__(self, url="http://localhost:7777", trace_length=10, headless=False, sandbox=True):
         self.url = url
         self.trace_length = trace_length
+        self.cores = -1
+        self.browser = "CHROME"
+
+    def setCores(self, core_number):
+        self.cores = core_number
 
     def setChrome(self, headless=False, sandbox=True):
+        self.browser = "CHROME"
         options = webdriver.chrome.options.Options()
         if headless:
             options.add_argument("--headless")
@@ -18,6 +31,7 @@ class TraceCollector:
         self.driver = webdriver.Chrome(options=options)
 
     def setFirefox(self, headless=False, sandbox=True):
+        self.browser = "FIREFOX"
         options = webdriver.FirefoxOptions()
         if headless:
             options.add_argument("--headless")
@@ -26,6 +40,7 @@ class TraceCollector:
         self.driver = webdriver.Firefox(options=options)
 
     def setEdge(self, headless=False, sandbox=True):
+        self.browser = "EDGE"
         options = webdriver.EdgeOptions()
         if headless:
             options.add_argument("--headless")
@@ -34,6 +49,7 @@ class TraceCollector:
         self.driver = webdriver.Edge(options=options)
 
     def setSafari(self, headless=False, sandbox=True):
+        self.browser = "SAFARI"
         self.driver = webdriver.Safari()
         if headless:
             # Not possible to run Safari in headless mode
@@ -54,6 +70,16 @@ class TraceCollector:
     def __run(self):
         self.driver.switch_to.window(self.driver.current_window_handle)
         self.driver.get(self.url)
+        
+        if self.cores != -1 and "linux" in platform.lower():
+            if self.browser == "FIREFOX":
+                ppid = get_process_parent_id_of("firefox")
+                taskset_process = subprocess.run(f"taskset -p {self.cores} {ppid}")
+                taskset_process.check_returncode()
+
+                irqbalance_process = subprocess.run(f"irqbalance --banirq=0")
+                irqbalance_process.check_returncode()
+
         self.driver.execute_script(f"window.trace_length = {self.trace_length * 1000}")
         self.driver.execute_script("window.using_automation_script = true")
 
