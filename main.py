@@ -65,6 +65,7 @@ def main():
     out_dir = opts.out_dir
     num_of_samples = opts.samples
     trace_len = opts.len
+    is_only_first_core = opts.only_first_core
 
     traces = []
 
@@ -81,7 +82,7 @@ def main():
         traces = []
     
         for _ in trange(num_of_samples):
-            trace = run(video_file, trace_len, player, browser)
+            trace = run(video_file, trace_len, player, browser, is_only_first_core)
             traces.append(trace)
 
         with open(out_file, "wb") as f:

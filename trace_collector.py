@@ -71,16 +71,16 @@ class TraceCollector:
         self.driver.switch_to.window(self.driver.current_window_handle)
         self.driver.get(self.url)
         
-        if self.cores != -1 and "linux" in platform.lower():
+        if self.cores != -1 and "linux" in platform().lower():
             if self.browser == "FIREFOX":
                 ppid = get_process_parent_id_of("firefox")
             elif self.browser == "CHROME":
                 ppid = get_process_parent_id_of("chrome")
 
-            taskset_process = subprocess.run(f"taskset -p {self.cores} {ppid}")
+            taskset_process = subprocess.run(f"taskset -p {self.cores} {ppid}", shell=True)
             taskset_process.check_returncode()
 
-            irqbalance_process = subprocess.run(f"irqbalance --banirq=0")
+            irqbalance_process = subprocess.run(f"irqbalance --banirq=0", shell=True)
             irqbalance_process.check_returncode()
 
         self.driver.execute_script(f"window.trace_length = {self.trace_length * 1000}")
