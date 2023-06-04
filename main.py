@@ -1,3 +1,4 @@
+import subprocess
 from trace_collector import TraceCollector
 from video_player import VideoPlayer, SupportedPlayers
 
@@ -15,9 +16,25 @@ parser.add_argument("--len", type=int, default=15, help="The trace length for th
 parser.add_argument("--samples", type=int, default=5, help="The number of runs for each video file.")
 parser.add_argument("--out_dir", type=str, default="", help="The output location.")
 parser.add_argument("--codecs", choices=["3gp", "flv", "mp4", "mkv", "*"], nargs="+")
-parser.add_argument("--browsers", choices=["chrome", "safari", "edge", "firefox", "*"], nargs="+")
+parser.add_argument("--browsers", choices=["chrome", "safari", "edge", "firefox", "gpu", "*"], nargs="+")
 parser.add_argument("--players", choices=["mpv", "mplayer", "vlc", "*"], nargs="+")
 opts = parser.parse_args()
+
+GPU_TRACE_COLLECTOR_LOCATION = "CudaTraceGenerator_15sec.exe"
+
+def collect_gpu_traces():
+    process = subprocess.Popen([GPU_TRACE_COLLECTOR_LOCATION], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = process.communicate()
+    return [int(entry) for entry in out.split()]
+
+def run_gpu(file_path, trace_length, player_type):
+    player = VideoPlayer(player=player_type)
+    player_thread = threading.Thread(target=lambda: player.play(file_path, trace_length))
+    player_thread.start()
+    
+    trace = collect_gpu_traces()
+    player_thread.join()
+    return [trace, file_path, "GPU", player_type.name.upper(), platform.platform(), os.getlogin(), int(time.time())]
 
 def run(file_path, trace_length, player_type, browser="CHROME"):
     with TraceCollector(trace_length=trace_length) as collector:
@@ -66,7 +83,7 @@ def main():
 
     players = ["mpv", "mplayer", "vlc"] if "*" in opts.players else opts.players
     codecs = ["3gp", "flv", "mp4", "mkv"] if "*" in opts.codecs else opts.codecs
-    browsers = ["chrome", "safari", "edge", "firefox"] if "*" in opts.browsers else opts.browsers
+    browsers = ["chrome", "safari", "edge", "firefox", "gpu"] if "*" in opts.browsers else opts.browsers
 
     for codec, player_name, browser in tqdm(combinations(players, codecs, browsers)):
     
@@ -77,10 +94,13 @@ def main():
         traces = []
     
         for _ in trange(num_of_samples):
-            trace = run(video_file, trace_len, player, browser)
+            if browser == "gpu":
+                trace = run_gpu(video_file, trace_len, player)
+            else:
+                trace = run(video_file, trace_len, player, browser)
             traces.append(trace)
 
-        with open(out_file, "wb") as f:
+        with open(out_file, "wb+") as f:
             pickle.dump(traces, f)
 
 if __name__ == "__main__":
